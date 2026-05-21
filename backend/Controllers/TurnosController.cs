@@ -66,13 +66,16 @@ public class TurnosController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = turno.Id }, turno);
     }
 
-    [HttpGet("cancelar/{id}")]
+    [HttpPut("{id}/cancelar")]
     public async Task<IActionResult> CancelarTurno(int id)
     {
         var turno = await _context.Turnos.FindAsync(id);
         if (turno == null) return NotFound();
 
-        if (turno.FechaHora - DateTime.Now < TimeSpan.FromHours(23))
+        if (turno.Estado is EstadoTurno.Cancelado or EstadoTurno.Atendido or EstadoTurno.NoShow)
+            return BadRequest(new { mensaje = "No se puede cancelar un turno en el estado actual." });
+
+        if (!turno.FechaHora.IsCancellable())
             return BadRequest(new { mensaje = "No se puede cancelar con menos de 24 horas de anticipación." });
 
         turno.Estado = EstadoTurno.Cancelado;
@@ -86,10 +89,14 @@ public class TurnosController : ControllerBase
         var turno = await _context.Turnos.FindAsync(id);
         if (turno == null) return NotFound();
 
-        if (!turno.FechaHora.IsWithinCancellationWindow())
+        if (turno.Estado is EstadoTurno.Cancelado or EstadoTurno.Atendido or EstadoTurno.NoShow)
+            return BadRequest(new { mensaje = "No se puede marcar ausencia para un turno en el estado actual." });
+
+        if (!turno.FechaHora.IsWithinNoShowWindow())
             return BadRequest(new { mensaje = "La ausencia solo puede registrarse dentro de las 24 horas del turno." });
 
         turno.Estado = EstadoTurno.NoShow;
+
         await _context.SaveChangesAsync();
         return Ok(turno);
     }

@@ -44,30 +44,47 @@ export default {
   },
   async mounted() {
     try {
-      const res = await turnosApi.getById(this.$route.params.id)
-      this.turno = res.data
-      this.nuevoEstado = this.turno.estado
-    } catch {
-      alert('Error al procesar la solicitud')
+      await this.cargarTurno()
+    } catch (error) {
+      this.mostrarError(error)
     }
   },
   methods: {
+    async cargarTurno() {
+      const res = await turnosApi.getById(this.$route.params.id)
+      this.turno = res.data
+      this.nuevoEstado = this.turno.estado
+    },
+    mostrarError(error) {
+      const mensaje = error?.response?.data?.mensaje || 'Error al procesar la solicitud'
+      alert(mensaje)
+    },
     formatFecha(fecha) {
       return new Date(fecha).toLocaleString('es-AR')
     },
     async cambiarEstado() {
       try {
-        const res = await turnosApi.actualizarEstado(this.turno.id, { estado: this.nuevoEstado })
-        this.turno = res.data
-      } catch {
-        alert('Error al procesar la solicitud')
+        await turnosApi.actualizarEstado(this.turno.id, { estado: this.nuevoEstado })
+        await this.cargarTurno()
+      } catch (error) {
+        this.mostrarError(error)
       }
     },
     async cancelar() {
-      await turnosApi.cancelar(this.turno.id)
+      try {
+        await turnosApi.cancelar(this.turno.id)
+        await this.cargarTurno()
+      } catch (error) {
+        this.mostrarError(error)
+      }
     },
     async marcarAusencia() {
-      await turnosApi.marcarAusencia(this.turno.id)
+      try {
+        await turnosApi.marcarAusencia(this.turno.id)
+        await this.cargarTurno()
+      } catch (error) {
+        this.mostrarError(error)
+      }
     }
   }
 }

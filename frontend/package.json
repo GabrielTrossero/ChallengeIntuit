@@ -2,7 +2,7 @@
   "name": "turnos-medicos-frontend",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --mode local",
     "build": "vite build",
     "preview": "vite preview"
   },

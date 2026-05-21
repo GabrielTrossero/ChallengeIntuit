@@ -1,13 +1,12 @@
 import axios from 'axios'
 
-//const BASE_URL = 'http://devserver01.intuit.ar/test/api' // TEST
-const BASE_URL = 'http://localhost:5000' //LOCAL
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 export const turnosApi = {
   getAll:           ()          => axios.get(`${BASE_URL}/turnos`),
   getById:          (id)        => axios.get(`${BASE_URL}/turnos/${id}`),
   create:           (data)      => axios.post(`${BASE_URL}/turnos`, data),
-  cancelar:         (id)        => axios.get(`${BASE_URL}/turnos/cancelar/${id}`),
+  cancelar:         (id)        => axios.put(`${BASE_URL}/turnos/${id}/cancelar`),
   marcarAusencia:   (id)        => axios.post(`${BASE_URL}/turnos/${id}/ausencia`),
   actualizarEstado: (id, data)  => axios.put(`${BASE_URL}/turnos/${id}/estado`, data)
 }

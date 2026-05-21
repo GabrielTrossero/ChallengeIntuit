@@ -3,8 +3,12 @@ using TurnosMedicos.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("Missing connection string 'DefaultConnection'.");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=turnos.db"));
+    options.UseSqlite(connectionString));
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {

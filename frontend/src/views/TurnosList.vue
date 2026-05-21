@@ -48,18 +48,28 @@ export default {
   },
   async mounted() {
     try {
-      const res = await turnosApi.getAll()
-      this.turnos = res.data
-    } catch {
-      alert('Error al procesar la solicitud')
+      await this.cargarTurnos()
+    } catch (error) {
+      const mensaje = error?.response?.data?.mensaje || 'Error al procesar la solicitud'
+      alert(mensaje)
     }
   },
   methods: {
     formatFecha(fecha) {
       return new Date(fecha).toLocaleString('es-AR')
     },
+    async cargarTurnos() {
+      const res = await turnosApi.getAll()
+      this.turnos = res.data
+    },
     async cancelar(id) {
-      await turnosApi.cancelar(id)
+      try {
+        await turnosApi.cancelar(id)
+        await this.cargarTurnos()
+      } catch (error) {
+        const mensaje = error?.response?.data?.mensaje || 'Error al procesar la solicitud'
+        alert(mensaje)
+      }
     }
   }
 }

@@ -1,6 +1,7 @@
 # .NET
 backend/bin/
 backend/obj/
+backend/.vs/
 backend/*.db
 backend/*.db-shm
 backend/*.db-wal
@@ -9,6 +10,25 @@ backend/*.db-wal
 frontend/node_modules/
 frontend/dist/
 
+# IDE
+**/.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Env & logs
+.env
+.env.*
+!frontend/.env.example
+*.log
+
 # OS
 .DS_Store
 Thumbs.db
+
+# Documento tecnico
+Challenge Desarrollador .NET - Nombre Completo - DNI.md
+Challenge Desarrollador .NET - Nombre Completo - DNI.pdf
