@@ -9,6 +9,8 @@ public class Turno
     public Medico? Medico { get; set; }
     public DateTime FechaHora { get; set; }
     public EstadoTurno Estado { get; set; }
+    public bool PenalizaNoShow { get; set; }
+    public TipoPenalizacionNoShow? TipoPenalizacionNoShow { get; set; }
     public DateTime FechaCreacion { get; set; }
     public string Motivo { get; set; } = string.Empty;
 }

@@ -1,5 +1,6 @@
 <template>
   <div>
+    <toast-notifications />
     <nav class="navbar">
       <span class="brand">Turnos Médicos</span>
       <div class="links">
@@ -15,8 +16,13 @@
 </template>
 
 <script>
+import ToastNotifications from './components/ToastNotifications.vue'
+
 export default {
-  name: 'App'
+  name: 'App',
+  components: {
+    ToastNotifications
+  }
 }
 </script>
 

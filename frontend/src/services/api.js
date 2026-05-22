@@ -1,29 +1,41 @@
 import axios from 'axios'
+import { mapApiError } from './errorMapper'
 
-//const BASE_URL = 'http://devserver01.intuit.ar/test/api' // TEST
-const BASE_URL = 'http://localhost:5000' //LOCAL
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+
+const apiClient = axios.create({
+  baseURL: BASE_URL
+})
+
+apiClient.interceptors.response.use(
+  response => response,
+  error => {
+    error.normalizedError = mapApiError(error)
+    return Promise.reject(error)
+  }
+)
 
 export const turnosApi = {
-  getAll:           ()          => axios.get(`${BASE_URL}/turnos`),
-  getById:          (id)        => axios.get(`${BASE_URL}/turnos/${id}`),
-  create:           (data)      => axios.post(`${BASE_URL}/turnos`, data),
-  cancelar:         (id)        => axios.get(`${BASE_URL}/turnos/cancelar/${id}`),
-  marcarAusencia:   (id)        => axios.post(`${BASE_URL}/turnos/${id}/ausencia`),
-  actualizarEstado: (id, data)  => axios.put(`${BASE_URL}/turnos/${id}/estado`, data)
+  getAll:           ()          => apiClient.get('/turnos'),
+  getById:          (id)        => apiClient.get(`/turnos/${id}`),
+  create:           (data)      => apiClient.post('/turnos', data),
+  cancelar:         (id)        => apiClient.put(`/turnos/${id}/cancelar`),
+  marcarAusencia:   (id)        => apiClient.post(`/turnos/${id}/ausencia`),
+  actualizarEstado: (id, data)  => apiClient.put(`/turnos/${id}/estado`, data)
 }
 
 export const pacientesApi = {
-  getAll:  ()          => axios.get(`${BASE_URL}/pacientes`),
-  getById: (id)        => axios.get(`${BASE_URL}/pacientes/${id}`),
-  create:  (data)      => axios.post(`${BASE_URL}/pacientes`, data),
-  update:  (id, data)  => axios.put(`${BASE_URL}/pacientes/${id}`, data),
-  delete:  (id)        => axios.delete(`${BASE_URL}/pacientes/${id}`)
+  getAll:  ()          => apiClient.get('/pacientes'),
+  getById: (id)        => apiClient.get(`/pacientes/${id}`),
+  create:  (data)      => apiClient.post('/pacientes', data),
+  update:  (id, data)  => apiClient.put(`/pacientes/${id}`, data),
+  delete:  (id)        => apiClient.delete(`/pacientes/${id}`)
 }
 
 export const medicosApi = {
-  getAll: () => axios.get(`${BASE_URL}/medicos`)
+  getAll: () => apiClient.get('/medicos')
 }
 
 export const sucursalesApi = {
-  getAll: () => axios.get(`${BASE_URL}/sucursales`)
+  getAll: () => apiClient.get('/sucursales')
 }

@@ -11,6 +11,8 @@ namespace TurnosMedicos.Controllers;
 public class TurnosController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private const int MaxNoShowsBeforeBlock = 3;
+    private static readonly TimeSpan BlockDuration = TimeSpan.FromDays(30);
 
     public TurnosController(AppDbContext context)
     {
@@ -45,6 +47,9 @@ public class TurnosController : ControllerBase
         if (paciente == null)
             return NotFound(new { mensaje = "Paciente no encontrado." });
 
+        if (DesbloquearSiVencioBloqueo(paciente))
+            await _context.SaveChangesAsync();
+
         if (paciente.Bloqueado)
             return BadRequest(new { mensaje = "El paciente se encuentra bloqueado para agendar turnos online." });
 
@@ -66,16 +71,16 @@ public class TurnosController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = turno.Id }, turno);
     }
 
-    [HttpGet("cancelar/{id}")]
+    [HttpPut("{id}/cancelar")]
     public async Task<IActionResult> CancelarTurno(int id)
     {
         var turno = await _context.Turnos.FindAsync(id);
         if (turno == null) return NotFound();
 
-        if (turno.FechaHora - DateTime.Now < TimeSpan.FromHours(23))
-            return BadRequest(new { mensaje = "No se puede cancelar con menos de 24 horas de anticipación." });
+        var mensajeError = await AplicarTransicionConPolitica(turno, EstadoTurno.Cancelado);
+        if (mensajeError != null)
+            return BadRequest(new { mensaje = mensajeError });
 
-        turno.Estado = EstadoTurno.Cancelado;
         await _context.SaveChangesAsync();
         return Ok(turno);
     }
@@ -86,12 +91,88 @@ public class TurnosController : ControllerBase
         var turno = await _context.Turnos.FindAsync(id);
         if (turno == null) return NotFound();
 
-        if (!turno.FechaHora.IsWithinCancellationWindow())
-            return BadRequest(new { mensaje = "La ausencia solo puede registrarse dentro de las 24 horas del turno." });
+        var mensajeError = await AplicarTransicionConPolitica(turno, EstadoTurno.NoShow);
+        if (mensajeError != null)
+            return BadRequest(new { mensaje = mensajeError });
 
-        turno.Estado = EstadoTurno.NoShow;
         await _context.SaveChangesAsync();
         return Ok(turno);
+    }
+
+    private async Task<string?> AplicarTransicionConPolitica(Turno turno, EstadoTurno estadoObjetivo)
+    {
+        if (turno.Estado == estadoObjetivo)
+            return null;
+
+        if (estadoObjetivo == EstadoTurno.NoShow && !turno.FechaHora.IsWithinNoShowWindow())
+            return "La ausencia solo puede registrarse dentro de las 24 horas del turno.";
+
+        var penalizaDespues = DeterminarPenalizacion(turno, estadoObjetivo);
+        var penalizabaAntes = turno.PenalizaNoShow;
+
+        turno.Estado = estadoObjetivo;
+        turno.PenalizaNoShow = penalizaDespues.Penaliza;
+        turno.TipoPenalizacionNoShow = penalizaDespues.Tipo;
+
+        if (!penalizabaAntes && penalizaDespues.Penaliza)
+            await AjustarNoShowPaciente(turno.PacienteId, 1);
+
+        if (penalizabaAntes && !penalizaDespues.Penaliza)
+            await AjustarNoShowPaciente(turno.PacienteId, -1);
+
+        return null;
+    }
+
+    private static (bool Penaliza, TipoPenalizacionNoShow? Tipo) DeterminarPenalizacion(Turno turno, EstadoTurno estadoObjetivo)
+    {
+        if (estadoObjetivo == EstadoTurno.NoShow)
+            return (true, TipoPenalizacionNoShow.Ausencia);
+
+        if (estadoObjetivo == EstadoTurno.Cancelado && !turno.FechaHora.IsCancellable())
+            return (true, TipoPenalizacionNoShow.CancelacionTardia);
+
+        return (false, null);
+    }
+
+    private async Task AjustarNoShowPaciente(int? pacienteId, int delta)
+    {
+        if (pacienteId == null || delta == 0)
+            return;
+
+        var paciente = await _context.Pacientes.FindAsync(pacienteId.Value);
+        if (paciente == null)
+            return;
+
+        paciente.NoShowCount = Math.Max(0, paciente.NoShowCount + delta);
+        RecalcularBloqueoPorNoShow(paciente);
+    }
+
+    private static void RecalcularBloqueoPorNoShow(Paciente paciente)
+    {
+        if (paciente.NoShowCount >= MaxNoShowsBeforeBlock)
+        {
+            paciente.Bloqueado = true;
+            paciente.FechaBloqueo ??= DateTime.UtcNow;
+            return;
+        }
+
+        paciente.Bloqueado = false;
+        paciente.FechaBloqueo = null;
+    }
+
+    private static bool DesbloquearSiVencioBloqueo(Paciente paciente)
+    {
+        if (!paciente.Bloqueado || paciente.FechaBloqueo == null)
+            return false;
+
+        var tiempoBloqueado = DateTime.UtcNow - paciente.FechaBloqueo.Value;
+        if (tiempoBloqueado < BlockDuration)
+            return false;
+
+        paciente.Bloqueado = false;
+        paciente.FechaBloqueo = null;
+        paciente.NoShowCount = 0;
+        return true;
     }
 
     [HttpPut("{id}/estado")]
@@ -100,7 +181,10 @@ public class TurnosController : ControllerBase
         var turno = await _context.Turnos.FindAsync(id);
         if (turno == null) return NotFound();
 
-        turno.Estado = request.Estado;
+        var mensajeError = await AplicarTransicionConPolitica(turno, request.Estado);
+        if (mensajeError != null)
+            return BadRequest(new { mensaje = mensajeError });
+
         await _context.SaveChangesAsync();
         return Ok(turno);
     }
