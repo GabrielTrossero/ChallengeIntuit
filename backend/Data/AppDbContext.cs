@@ -19,6 +19,10 @@ public class AppDbContext : DbContext
             .HasConversion<string>();
 
         modelBuilder.Entity<Turno>()
+            .Property(t => t.TipoPenalizacionNoShow)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Turno>()
             .HasOne(t => t.Paciente)
             .WithMany()
             .HasForeignKey(t => t.PacienteId)
