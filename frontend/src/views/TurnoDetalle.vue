@@ -32,6 +32,8 @@
 
 <script>
 import { turnosApi } from '../services/api'
+import { getErrorMessage } from '../services/errorMapper'
+import { notifyError, notifySuccess } from '../services/notificationBus'
 
 export default {
   name: 'TurnoDetalle',
@@ -56,8 +58,7 @@ export default {
       this.nuevoEstado = this.turno.estado
     },
     mostrarError(error) {
-      const mensaje = error?.response?.data?.mensaje || 'Error al procesar la solicitud'
-      alert(mensaje)
+      notifyError(getErrorMessage(error))
     },
     formatFecha(fecha) {
       return new Date(fecha).toLocaleString('es-AR')
@@ -66,6 +67,7 @@ export default {
       try {
         await turnosApi.actualizarEstado(this.turno.id, { estado: this.nuevoEstado })
         await this.cargarTurno()
+        notifySuccess('Estado del turno actualizado correctamente.')
       } catch (error) {
         this.mostrarError(error)
       }
@@ -74,6 +76,7 @@ export default {
       try {
         await turnosApi.cancelar(this.turno.id)
         await this.cargarTurno()
+        notifySuccess('Turno cancelado correctamente.')
       } catch (error) {
         this.mostrarError(error)
       }
@@ -82,6 +85,7 @@ export default {
       try {
         await turnosApi.marcarAusencia(this.turno.id)
         await this.cargarTurno()
+        notifySuccess('Ausencia registrada correctamente.')
       } catch (error) {
         this.mostrarError(error)
       }

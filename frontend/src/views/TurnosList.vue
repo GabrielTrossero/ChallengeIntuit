@@ -38,6 +38,8 @@
 
 <script>
 import { turnosApi } from '../services/api'
+import { getErrorMessage } from '../services/errorMapper'
+import { notifyError, notifySuccess } from '../services/notificationBus'
 
 export default {
   name: 'TurnosList',
@@ -50,8 +52,7 @@ export default {
     try {
       await this.cargarTurnos()
     } catch (error) {
-      const mensaje = error?.response?.data?.mensaje || 'Error al procesar la solicitud'
-      alert(mensaje)
+      notifyError(getErrorMessage(error))
     }
   },
   methods: {
@@ -66,9 +67,9 @@ export default {
       try {
         await turnosApi.cancelar(id)
         await this.cargarTurnos()
+        notifySuccess('Turno cancelado correctamente.')
       } catch (error) {
-        const mensaje = error?.response?.data?.mensaje || 'Error al procesar la solicitud'
-        alert(mensaje)
+        notifyError(getErrorMessage(error))
       }
     }
   }

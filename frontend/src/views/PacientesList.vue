@@ -38,6 +38,8 @@
 
 <script>
 import { pacientesApi } from '../services/api'
+import { getErrorMessage } from '../services/errorMapper'
+import { notifyError, notifySuccess } from '../services/notificationBus'
 
 export default {
   name: 'PacientesList',
@@ -50,8 +52,8 @@ export default {
     try {
       const res = await pacientesApi.getAll()
       this.pacientes = res.data
-    } catch {
-      alert('Error al procesar la solicitud')
+    } catch (error) {
+      notifyError(getErrorMessage(error))
     }
   },
   methods: {
@@ -59,8 +61,9 @@ export default {
       try {
         await pacientesApi.delete(id)
         this.pacientes = this.pacientes.filter(p => p.id !== id)
-      } catch {
-        alert('Error al procesar la solicitud')
+        notifySuccess('Paciente eliminado correctamente.')
+      } catch (error) {
+        notifyError(getErrorMessage(error))
       }
     }
   }
